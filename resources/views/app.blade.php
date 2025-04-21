@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Laravel Job Runner') }}</title>
-    @vite(['resources/js/app.jsx', 'resources/css/app.scss'])
+    @vite(['resources/js/App.jsx', 'resources/css/app.scss'])
 </head>
 <body>
 <div id="root"></div>

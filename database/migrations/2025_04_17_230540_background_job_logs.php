@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('method');
             $table->json('parameters');
             $table->string('status')->default('pending');
-            $table->integer('priority')->default(1);
+            $table->unsignedInteger('priority')->default(1);
             $table->text('error_message')->nullable();
             $table->unsignedInteger('attempts')->default(0);
             $table->timestamp('scheduled_at')->nullable();
