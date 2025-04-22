@@ -21,3 +21,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# But keep these two logs
+!/storage/logs/background_jobs.log
+!/storage/logs/background_jobs_errors.log

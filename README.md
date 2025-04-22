@@ -23,6 +23,7 @@ This project delivers a **custom background job runner** for Laravel, designed t
 - [Assumptions and Limitations](#assumptions-and-limitations)
 - [Future Improvements](#future-improvements)
 - [Sample Logs](#sample-logs)
+- [Screenshots](#Screenshots)
 
 ## Features
 
@@ -363,3 +364,13 @@ storage/logs/background_jobs.log:
 
 
 
+## Screenshots
+
+### Screenshot 1
+![Screenshot 1](screenshots/Screenshot%202025-04-22%20at%2010.56.11.png)
+
+### Screenshot 2
+![Screenshot 2](screenshots/Screenshot%202025-04-22%20at%2010.56.23.png)
+
+### Screenshot 3
+![Screenshot 3](screenshots/Screenshot%202025-04-22%20at%2010.56.35.png)
