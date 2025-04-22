@@ -9,54 +9,17 @@ use App\Models\BackgroundJobLog;
 use Exception;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
-use InvalidArgumentException;
 
-/**
- * Service for processing background jobs.
- *
- * Validates and executes jobs, handles retries, and supports job chaining.
- *
- * @package App\Services
- */
 class JobProcessor implements JobProcessorInterface
 {
-    /**
-     * The logger instance.
-     *
-     * @var LoggerInterface
-     */
     protected $logger;
-
-    /**
-     * The retry strategy instance.
-     *
-     * @var RetryStrategy
-     */
     protected $retryStrategy;
 
-    /**
-     * Create a new job processor instance.
-     *
-     * @param LoggerInterface $logger The logger service.
-     * @param RetryStrategy $retryStrategy The retry strategy service.
-     */
     public function __construct(LoggerInterface $logger, RetryStrategy $retryStrategy)
     {
         $this->logger = $logger;
         $this->retryStrategy = $retryStrategy;
     }
-
-    /**
-     * Execute a background job.
-     *
-     * Validates the job, executes it, logs the result, and handles chaining.
-     *
-     * @param string $class The fully qualified class name of the job.
-     * @param string $method The method to call on the job class.
-     * @param array $params Parameters to pass to the method.
-     * @throws InvalidArgumentException If the job is invalid or not found.
-     * @return void
-     */
 
     public function execute(string $class, string $method, array $params, ?BackgroundJobLog $jobLog = null): void
     {
@@ -64,26 +27,20 @@ class JobProcessor implements JobProcessorInterface
 
         $config = config('background-jobs');
 
-        // Check authorization first
         if (!isset($config['allowed_jobs'][$class]) || !in_array($method, $config['allowed_jobs'][$class])) {
             $this->logger->error("Unauthorized job: {$class}::{$method}");
             throw new InvalidArgumentException("Unauthorized job: {$class}::{$method}");
         }
 
-        // Create or retrieve job log only if authorized
         if (!$jobLog) {
-            $jobLog = BackgroundJobLog::firstOrCreate(
-                [
-                    'class' => $class,
-                    'method' => $method,
-                    'parameters' => json_encode($params),
-                ],
-                [
-                    'status' => 'pending',
-                    'priority' => 1,
-                    'scheduled_at' => null,
-                ]
-            );
+            $jobLog = BackgroundJobLog::create([
+                'class' => $class,
+                'method' => $method,
+                'parameters' => json_encode($params),
+                'status' => 'pending',
+                'priority' => config('background-jobs.default_priority', 1),
+                'scheduled_at' => now(),
+            ]);
         }
 
         try {
@@ -96,8 +53,11 @@ class JobProcessor implements JobProcessorInterface
                 throw new InvalidArgumentException("Method does not exist: {$class}::{$method}");
             }
 
-            $instance = App::make($class);
+            $jobLog->update(['status' => 'running']);
+
+            $instance = new $class($params, $jobLog->id);
             $this->logger->info("Calling {$class}::{$method}", ['instance_class' => get_class($instance)]);
+
             $result = call_user_func_array([$instance, $method], $params);
 
             $jobLog->update([
@@ -116,12 +76,25 @@ class JobProcessor implements JobProcessorInterface
             }
         } catch (Exception $e) {
             $this->logger->error("Exception in job: {$e->getMessage()}");
-
+            $jobLog->update([
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+                'completed_at' => now(),
+            ]);
             $this->retryStrategy->handle($jobLog, $e, function () use ($class, $method, $params, $jobLog) {
                 $this->execute($class, $method, $params, $jobLog);
             });
         }
     }
 
-
+    public function processQueue(): void
+    {
+        while ($jobLog = BackgroundJobLog::where('status', 'pending')
+            ->orderBy('priority', 'desc')
+            ->orderBy('scheduled_at', 'asc')
+            ->first()) {
+            $params = json_decode($jobLog->parameters, true) ?? [];
+            $this->execute($jobLog->class, $jobLog->method, $params, $jobLog);
+        }
+    }
 }

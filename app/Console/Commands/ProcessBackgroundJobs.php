@@ -32,7 +32,7 @@ class ProcessBackgroundJobs extends Command
      *
      * @var string
      */
-    protected $description = 'Process pending background jobs';
+    protected $description = 'Process pending background jobs in priority order';
 
     /**
      * Execute the console command.

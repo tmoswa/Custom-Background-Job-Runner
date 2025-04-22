@@ -2,7 +2,7 @@
 
 require __DIR__.'/../vendor/autoload.php';
 
-$app = require_once __DIR__.'/../bootstrap/app.php';
+$app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 use App\Models\BackgroundJobLog;
@@ -23,14 +23,15 @@ use Illuminate\Support\Facades\App;
 $class = $argv[1] ?? null;
 $method = $argv[2] ?? null;
 $params = isset($argv[3]) ? explode(',', $argv[3]) : [];
+$priority = isset($argv[4]) ? (int)$argv[4] : config('background-jobs.default_priority', 1);
 
 if (!$class || !$method) {
-    echo "Usage: php run-job.php <fully-qualified-class> <method> [<comma-separated-params>]\n";
-    echo "Example: php run-job.php App\\Jobs\\SampleJob process test1,test2\n";
+    echo "Usage: php run-job.php <fully-qualified-class> <method> [<comma-separated-params>] [<priority>]\n";
+    echo "Example: php run-job.php App\\Jobs\\SampleJob process test1,test2 2\n";
     exit(1);
 }
 
-// Normalize class name to use backslashes
+// Normalize class name
 $class = str_replace(['\\', '/'], '\\', $class);
 
 // Validate class existence
@@ -46,25 +47,21 @@ if (!method_exists($class, $method)) {
 }
 
 try {
-    // Create a BackgroundJobLog entry if none exists
-    $jobLog = BackgroundJobLog::firstOrCreate(
-        [
-            'class' => $class,
-            'method' => $method,
-            'parameters' => $params,  // Store as array
-        ],
-        [
-            'status' => 'pending',
-            'priority' => 1,
-            'scheduled_at' => null,
-        ]
-    );
+    // Create a BackgroundJobLog entry
+    $jobLog = BackgroundJobLog::create([
+        'class' => $class,
+        'method' => $method,
+        'parameters' => json_encode($params),
+        'status' => 'pending',
+        'priority' => $priority,
+        'scheduled_at' => now(),
+    ]);
 
     $processor = App::make(JobProcessor::class);
-    $processor->execute($class, $method, $params);
+    $processor->execute($class, $method, $params, $jobLog);
 } catch (Exception $e) {
     echo "Error: {$e->getMessage()}\n";
-    if ($jobLog) {
+    if (isset($jobLog)) {
         $jobLog->update([
             'status' => 'failed',
             'error_message' => $e->getMessage(),

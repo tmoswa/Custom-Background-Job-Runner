@@ -70,16 +70,13 @@ if (!function_exists('runBackgroundJob')) {
             $command = ['php', base_path('public/run-job.php'), $escapedClass, $method, implode(',', $params)];
             $process = app()->make(Process::class, ['command' => $command]); // Use make for clarity
 
-            // Debug: Verify Process instance and isRunning
-            dump('Process instance in helper:', $process);
             $process->setWorkingDirectory(base_path());
 
             if ($delay > 0) {
-                sleep($delay); // Simplified; use a scheduler in production
+                sleep($delay); // Simplified; will use a scheduler in production
             }
 
             $process->start();
-            dump('isRunning after start:', $process->isRunning());
 
             if ($process->isRunning()) {
                 $jobLog->update(['status' => 'running', 'started_at' => now()]);

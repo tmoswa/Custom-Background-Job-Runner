@@ -17,14 +17,14 @@ class JobController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        return $query->paginate(15) ?: ['data' => [], 'current_page' => 1, 'last_page' => 1];
+        return $query->paginate(10) ?: ['data' => [], 'current_page' => 1, 'last_page' => 1];
     }
 
     public function logs()
     {
         try {
             $logs = file(storage_path('logs/background_jobs.log'), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-            return response()->json(['logs' => array_slice($logs, -10)]); // Return last 10 logs
+            return response()->json(['logs' => array_slice($logs, -10)]);
         } catch (\Exception $e) {
             Log::error('Failed to read logs', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Unable to read logs'], 500);
@@ -41,7 +41,14 @@ class JobController extends Controller
             $job->update([
                 'status' => 'failed',
                 'error_message' => 'Cancelled by user at ' . now()->toDateTimeString(),
+                'completed_at' => now(),
             ]);
+
+            Log::channel('background_jobs')->info("Job cancelled: {$job->id}", [
+                'class' => $job->class,
+                'method' => $job->method,
+            ]);
+
             return response()->json(['message' => 'Job cancelled successfully']);
         } catch (\Exception $e) {
             Log::error('Job cancellation failed', ['job_id' => $job->id, 'error' => $e->getMessage()]);

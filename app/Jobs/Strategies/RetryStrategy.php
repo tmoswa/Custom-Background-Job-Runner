@@ -12,6 +12,7 @@ class RetryStrategy
     public function handle(BackgroundJobLog $job, Exception $exception, callable $callback): void
     {
         $maxAttempts = Config::get('background-jobs.max_retries', 3);
+        $retryDelay = Config::get('background-jobs.retry_delay', 10);
 
         $job->increment('attempts');
         $job->update(['error_message' => $exception->getMessage()]);
@@ -22,21 +23,15 @@ class RetryStrategy
                 'completed_at' => now(),
             ]);
             Log::channel('background_jobs')->error("Job {$job->id} failed after {$maxAttempts} attempts: {$exception->getMessage()}");
-            return; // Explicitly return to avoid callback execution
+            return;
         }
 
-        // Simulate delay (skipped in testing)
+        // Use configurable delay
         if (app()->environment('testing')) {
             $callback();
         } else {
-            sleep($this->calculateDelay($job->attempts));
+            sleep($retryDelay);
             $callback();
         }
-    }
-
-    protected function calculateDelay(int $attempts): int
-    {
-        // Exponential backoff: 1s, 2s, 4s, etc.
-        return (2 ** $attempts);
     }
 }

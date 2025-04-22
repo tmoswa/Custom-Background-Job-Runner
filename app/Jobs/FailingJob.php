@@ -7,7 +7,7 @@ use App\Models\BackgroundJobLog;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
-class SampleJob implements JobInterface
+class FailingJob implements JobInterface
 {
     protected $params;
     protected $jobLogId;
@@ -20,8 +20,6 @@ class SampleJob implements JobInterface
 
     public function handle(array $params): mixed
     {
-        $delay = config('background-jobs.retry_delay', 10);
-
         $jobLog = $this->jobLogId
             ? BackgroundJobLog::findOrFail($this->jobLogId)
             : BackgroundJobLog::where('class', self::class)
@@ -42,7 +40,8 @@ class SampleJob implements JobInterface
         ]);
 
         // Sleep in increments, checking for cancellation
-        $steps = $delay / 2; // Check every 2 seconds
+        $delay = 2; // Total delay for FailingJob
+        $steps = $delay / 2;
         for ($i = 0; $i < $steps; $i++) {
             if ($jobLog) {
                 $jobLog->refresh();
@@ -53,19 +52,7 @@ class SampleJob implements JobInterface
             sleep(2);
         }
 
-        if ($jobLog) {
-            $jobLog->update([
-                'status' => 'completed',
-                'completed_at' => now(),
-            ]);
-
-            Log::channel('background_jobs')->info("Job status updated: " . self::class . "::handle", [
-                'status' => 'completed',
-                'job_id' => $jobLog->id,
-            ]);
-        }
-
-        return true;
+        throw new Exception('Simulated job failure');
     }
 
     public function process(string $param1, string $param2): bool
@@ -80,14 +67,6 @@ class SampleJob implements JobInterface
 
     public function getNextJob(): ?array
     {
-        Log::debug('SampleJob::getNextJob called', ['caller' => debug_backtrace()[1]['function']]);
-        if (debug_backtrace()[1]['function'] === 'process') {
-            return [
-                'class' => self::class,
-                'method' => 'sendEmail',
-                'params' => ['test@example.com'],
-            ];
-        }
         return null;
     }
 }
