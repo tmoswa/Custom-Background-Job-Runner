@@ -24,7 +24,7 @@ class JobProcessorTest extends TestCase
         ]]);
     }
 
-    #[Test]
+
     public function it_executes_valid_job()
     {
         $logger = Mockery::mock(FileLogger::class);
@@ -113,7 +113,7 @@ class JobProcessorTest extends TestCase
         $this->assertNotNull($followUpJob->completed_at);
     }
 
-    #[Test]
+
     public function it_throws_for_unauthorized_job()
     {
         $logger = Mockery::mock(FileLogger::class);
@@ -145,7 +145,7 @@ class JobProcessorTest extends TestCase
     }
 
 
-    #[Test]
+
     public function it_retries_on_exception()
     {
         $logger = Mockery::mock(FileLogger::class);

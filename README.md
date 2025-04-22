@@ -54,8 +54,8 @@ This project delivers a **custom background job runner** for Laravel, designed t
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/tmoswa/job-runner.git
-   cd job-runner
+   https://github.com/tmoswa/Custom-Background-Job-Runner.git
+   cd Custom-Background-Job-Runner
 
 
 2. **Install Dependencies**:
@@ -84,10 +84,14 @@ JOB_DEFAULT_PRIORITY=1
 5. **Run Migrations**:
     ```bash
     php artisan migrate
+   
+- you may run into the question "The SQLite database configured for this application does not exist: database/database.sqlite." if you did not change anything in the .env, choose Yes
 
 6. **Build Frontend**:
     ```bash
     npm run build
+    or 
+    npm run dev
 
 
 7. **Start Server**:
@@ -103,6 +107,8 @@ Process jobs in priority order:
 
 9. **Run Tests (see Testing (#testing))**:
     ```bash
+    php artisan migrate:fresh --env=testing
+    then
     php artisan test
 
 

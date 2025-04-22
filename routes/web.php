@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/jobs');
 });
 
 // Catch-all route for SPA, excluding API routes
